@@ -6,7 +6,7 @@ This repository maintains Bitcoin hourly price data from 2015 to present, using 
 ## Repository Structure 📁
 - `bitcoin-tracker-workflow-template.json`: n8n workflow template
 - `btc-hourly-price_2015_2025.csv`: Complete 10y historical hourly data from November 12, 2014 through May 13, 2025
-- `btc_last_YYYY-MM-DD.csv`: Daily backups of the most recent 24 hours fetched from Snowflake
+- `btc_ohclv_YYYY-MM-DD.csv`: Daily backups of the most recent 24 hours fetched from Snowflake
 - `README.md`: This documentation file
 
 ## Data Structure 📈
@@ -36,7 +36,7 @@ The `btc-hourly-price_2015_2025.csv` file contains the complete historical recor
 New hourly data is:
 1. Collected from CryptoCompare API
 2. Stored in Snowflake database ❄️
-3. Backed up daily to this repository as `btc_last_YYYY-MM-DD.csv` files
+3. Backed up daily to this repository as `btc_ohclv_YYYY-MM-DD.csv` files
 
 This approach provides both a complete historical record and daily snapshots of recent price movements.
 
@@ -148,7 +148,7 @@ GRANT ROLE N8N_ROLE TO USER N8N_SERVICE_USER;
 The complete historical dataset from 2015-2025 is available in the `btc-hourly-price_2015_2025.csv` file. This contains all hourly OHLCV data for the entire period.
 
 ### Accessing Recent Data
-Daily snapshots of the most recent 24 hours are available in files named `btc_last_YYYY-MM-DD.csv`. Each file contains exactly 24 hours of data.
+Daily snapshots of the most recent 24 hours are available in files named `btc_ohclv_YYYY-MM-DD.csv`. Each file contains exactly 24 hours of data.
 
 ### Querying Snowflake Data
 You can use SQL to query the historical data in Snowflake:
