@@ -96,7 +96,7 @@ GRANT ROLE N8N_ROLE TO USER N8N_SERVICE_USER;
 
 2. **Configure Credentials**:
    - **Snowflake**: Add your Snowflake credentials
-     - Host: `your-account.snowflakecomputing.com`
+     - Account: `your-account.snowflakecomputing.com`
      - Database: `BITCOIN_DATA`
      - Schema: `PRICES`
      - Username: `N8N_SERVICE_USER`
