@@ -1,10 +1,9 @@
-# Bitcoin Price Hourly Tracker 📊💰
+# Bitcoin Price History Tracker 📊💰
 
 ## Overview
 This repository maintains Bitcoin hourly price data from 2020 to present, using a combination of historical data files and daily Snowflake backups. The system fetches current data from CryptoCompare, stores it in Snowflake, and creates daily CSV backups on GitHub.
 
 ## Repository Structure 📁
-- `bitcoin-tracker-workflow-template.json`: n8n workflow template
 - `btc-hourly-price_2020_2025.csv`: Complete historical hourly data from January 1, 2020 through May 13, 2025
 - `btc_last24h_YYYY-MM-DD.csv`: Daily backups of the most recent 24 hours fetched from Snowflake
 - `README.md`: This documentation file
@@ -36,6 +35,10 @@ New hourly data is:
 3. Backed up daily to this repository as `btc_last24h_YYYY-MM-DD.csv` files
 
 This approach provides both a complete historical record and daily snapshots of recent price movements.
+
+## Data Usage and License 📝
+
+This dataset is **free to use** and is especially designed for machine learning projects, financial analysis, and academic research. Whether you're building price prediction models, studying market patterns, or teaching data science, this dataset provides a comprehensive foundation of Bitcoin price history.
 
 ## Setup Instructions 🛠️
 
@@ -169,6 +172,24 @@ WHERE DATE_STR >= DATEADD(month, -1, CURRENT_DATE())
 GROUP BY DATE_STR
 ORDER BY DATE_STR;
 ```
+
+## Consolidating Historical and Daily Data 🔗
+
+Currently, the historical data (`btc-hourly-price_2020_2025.csv`) and daily updates (`btc_last24h_YYYY-MM-DD.csv`) are kept as separate files due to the size of the historical dataset (90,000+ lines).
+
+### Future Work
+
+In future iterations, we plan to implement a solution to automatically merge the daily updates with the historical dataset to maintain a single up-to-date CSV file. This will involve handling the complexities of reading, appending, and writing large files efficiently.
+
+### Local Consolidation Script
+
+For users who want to consolidate all data into a single file, here's a Python script that will combine the historical dataset with all daily updates:
+
+
+To use this script:
+1. Save it as `consolidate_bitcoin_data.py` in the same directory as your CSV files
+2. Run it with Python: `python consolidate_bitcoin_data.py`
+3. The script will produce a new consolidated file with today's date in the filename
 
 ## Troubleshooting 🔍
 
