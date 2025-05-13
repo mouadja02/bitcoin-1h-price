@@ -76,6 +76,6 @@ if __name__ == "__main__":
     # Usage example
     consolidate_bitcoin_data(
         historical_file="btc-hourly-price_2015_2025.csv",
-        daily_backups_pattern="btc_last_*.csv",
+        daily_backups_pattern="btc_ohclv__*.csv",
         output_file="btc-hourly-price_consolidated.csv"
     )
