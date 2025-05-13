@@ -25,10 +25,6 @@ Bitcoin price data is stored with the following schema:
 | VOLUME_FROM | FLOAT     | Volume in BTC |
 | VOLUME_TO   | FLOAT     | Volume in USD |
 
-## Repository Structure
-- `/daily_backups`: Daily CSV backups of the most recent 24 hours of price data
-- `/scripts`: Helper scripts for data processing
-- `/docs`: Documentation and setup guides
 
 ## Setup Instructions
 
@@ -36,8 +32,8 @@ Bitcoin price data is stored with the following schema:
 - Snowflake account
 - GitHub account
 - n8n instance
-- CryptoCompare API key: `fb4f8e26d4a0fec6b05a9ae93d937f5697519d50a8f48d0f228901056c6d4bf5`
-
+- CryptoCompare API
+- 
 ### Snowflake Setup
 1. Create the database and tables:
 ```sql
@@ -77,12 +73,6 @@ GRANT ROLE N8N_ROLE TO USER N8N_SERVICE_USER;
 ### n8n Workflow Setup
 1. Import the workflow JSON files into your n8n instance
 2. Configure Snowflake credentials:
-   - Host: your-account.snowflakecomputing.com
-   - Database: BITCOIN_DATA
-   - Schema: PRICES
-   - Username: N8N_SERVICE_USER
-   - Password: [your password]
-   - Warehouse: [your warehouse]
 
 3. Configure GitHub credentials:
    - Add a Personal Access Token with repo permissions
@@ -125,7 +115,7 @@ Daily backup files are stored in the `/daily_backups` folder with filenames in t
 To add more cryptocurrencies, create additional tables in Snowflake and modify the workflows to fetch data for those cryptocurrencies.
 
 ### Handling API Rate Limits
-The CryptoCompare API has rate limits. The current key allows for up to 250,000 API calls per month, which is sufficient for the current setup.
+The CryptoCompare API has rate limits. The current key allows for up to 12,000 API calls per month, which is sufficient for the current setup.
 
 ## Troubleshooting
 
