@@ -183,8 +183,7 @@ In a future update, I plan to develop functionality to merge the new daily updat
 
 ### Consolidation Script
 
-In the meantime, you can use this Python script to combine all data files into a single up-to-date CSV:
-Save this script as `consolidate_bitcoin_data.py` and run it in the repository directory to create an up-to-date consolidated CSV file containing all historical and new data in chronological order.
+In the meantime, you can use 'consolidate_bitcoin_data.py' Python script to combine all data files into a single up-to-date CSV. Run it in the repository directory to create an up-to-date consolidated CSV file containing all historical and new data in chronological order.
 
 ## Troubleshooting 🔍
 
