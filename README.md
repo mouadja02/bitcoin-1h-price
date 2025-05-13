@@ -1,11 +1,12 @@
-# Bitcoin Price History Tracker 📊💰
+# Bitcoin Price Hourly Tracker 📊💰
 
 ## Overview
-This repository maintains Bitcoin hourly price data from 2020 to present, using a combination of historical data files and daily Snowflake backups. The system fetches current data from CryptoCompare, stores it in Snowflake, and creates daily CSV backups on GitHub.
+This repository maintains Bitcoin hourly price data from 2015 to present, using a combination of historical data files and daily Snowflake backups. The system fetches current data from CryptoCompare, stores it in Snowflake, and creates daily CSV backups on GitHub.
 
 ## Repository Structure 📁
-- `btc-hourly-price_2020_2025.csv`: Complete historical hourly data from January 1, 2020 through May 13, 2025
-- `btc_last24h_YYYY-MM-DD.csv`: Daily backups of the most recent 24 hours fetched from Snowflake
+- `bitcoin-tracker-workflow-template.json`: n8n workflow template
+- `btc-hourly-price_2015_2025.csv`: Complete 10y historical hourly data from November 12, 2014 through May 13, 2025
+- `btc_last_YYYY-MM-DD.csv`: Daily backups of the most recent 24 hours fetched from Snowflake
 - `README.md`: This documentation file
 
 ## Data Structure 📈
@@ -23,22 +24,21 @@ Bitcoin price data is stored with the following schema:
 | VOLUME_FROM | FLOAT     | Volume in BTC |
 | VOLUME_TO   | FLOAT     | Volume in USD |
 
+## Data License and Use 📋
+This dataset is free to use and is specifically designed for machine learning projects and research purposes. You're welcome to use this data for academic research, training ML models, educational purposes, and non-commercial applications. Attribution is appreciated but not required.
+
 ## Data Sources and Workflow ⚙️
 
 ### Historical Data 🗄️
-The `btc-hourly-price_2020_2025.csv` file contains the complete historical record of Bitcoin hourly prices from January 1, 2020 through May 13, 2025. This serves as the foundational dataset and remains static.
+The `btc-hourly-price_2015_2025.csv` file contains the complete historical record of Bitcoin hourly prices from January 1, 2015 through May 13, 2025. This serves as the foundational dataset and remains static.
 
 ### Daily Updates 🔄
 New hourly data is:
 1. Collected from CryptoCompare API
 2. Stored in Snowflake database ❄️
-3. Backed up daily to this repository as `btc_last24h_YYYY-MM-DD.csv` files
+3. Backed up daily to this repository as `btc_last_YYYY-MM-DD.csv` files
 
 This approach provides both a complete historical record and daily snapshots of recent price movements.
-
-## Data Usage and License 📝
-
-This dataset is **free to use** and is especially designed for machine learning projects, financial analysis, and academic research. Whether you're building price prediction models, studying market patterns, or teaching data science, this dataset provides a comprehensive foundation of Bitcoin price history.
 
 ## Setup Instructions 🛠️
 
@@ -134,21 +134,21 @@ GRANT ROLE N8N_ROLE TO USER N8N_SERVICE_USER;
 
 ### Step 3: Initial Data Load
 
-1. Download the historical Bitcoin data from January 1, 2020 to May 13, 2025:
+1. Download the historical Bitcoin data from January 1, 2015 to May 13, 2025:
    - Use the CryptoCompare API with the Historical Hour Data endpoint
    - Or use a provided CSV if available in this repository
 
-2. Upload this historical data to your GitHub repository as `btc-hourly-price_2020_2025.csv`
+2. Upload this historical data to your GitHub repository as `btc-hourly-price_2015_2025.csv`
 
 3. Wait for the workflow to run automatically or trigger it manually to start collecting new data
 
 ## Usage 📊
 
 ### Accessing Historical Data
-The complete historical dataset from 2020-2025 is available in the `btc-hourly-price_2020_2025.csv` file. This contains all hourly OHLCV data for the entire period.
+The complete historical dataset from 2015-2025 is available in the `btc-hourly-price_2015_2025.csv` file. This contains all hourly OHLCV data for the entire period.
 
 ### Accessing Recent Data
-Daily snapshots of the most recent 24 hours are available in files named `btc_last24h_YYYY-MM-DD.csv`. Each file contains exactly 24 hours of data.
+Daily snapshots of the most recent 24 hours are available in files named `btc_last_YYYY-MM-DD.csv`. Each file contains exactly 24 hours of data.
 
 ### Querying Snowflake Data
 You can use SQL to query the historical data in Snowflake:
@@ -173,23 +173,18 @@ GROUP BY DATE_STR
 ORDER BY DATE_STR;
 ```
 
-## Consolidating Historical and Daily Data 🔗
+## Future Plans: Consolidated Historical Data 🔮
 
-Currently, the historical data (`btc-hourly-price_2020_2025.csv`) and daily updates (`btc_last24h_YYYY-MM-DD.csv`) are kept as separate files due to the size of the historical dataset (90,000+ lines).
+In a future update, I plan to develop functionality to merge the new daily updates with the historical data to maintain a single comprehensive CSV file. Currently, this is challenging because:
 
-### Future Work
+1. The historical data file contains over 90,000 lines
+2. Appending data requires reading the entire file and adding content at the end
+3. Managing this process within GitHub's file size limits requires careful handling
 
-In future iterations, we plan to implement a solution to automatically merge the daily updates with the historical dataset to maintain a single up-to-date CSV file. This will involve handling the complexities of reading, appending, and writing large files efficiently.
+### Consolidation Script
 
-### Local Consolidation Script
-
-For users who want to consolidate all data into a single file, here's a Python script that will combine the historical dataset with all daily updates:
-
-
-To use this script:
-1. Save it as `consolidate_bitcoin_data.py` in the same directory as your CSV files
-2. Run it with Python: `python consolidate_bitcoin_data.py`
-3. The script will produce a new consolidated file with today's date in the filename
+In the meantime, you can use this Python script to combine all data files into a single up-to-date CSV:
+Save this script as `consolidate_bitcoin_data.py` and run it in the repository directory to create an up-to-date consolidated CSV file containing all historical and new data in chronological order.
 
 ## Troubleshooting 🔍
 
@@ -218,9 +213,7 @@ To use this script:
 ## Maintenance 🔧
 
 ### API Rate Limits
-The CryptoCompare API has rate limits:
-- Free tier: 10,000 calls per month
-- With API key: 100,000 calls per month
+The CryptoCompare API has rate limits: 11,000 calls per month
 - This workflow uses approximately 750 calls per month (hourly fetching)
 
 ### Adding More Cryptocurrencies
