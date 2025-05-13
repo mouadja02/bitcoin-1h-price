@@ -25,6 +25,18 @@ Bitcoin price data is stored with the following schema:
 | VOLUME_FROM | FLOAT     | Volume in BTC |
 | VOLUME_TO   | FLOAT     | Volume in USD |
 
+##Data Sources and Workflow
+#Historical Data
+The btc-hourly-price_2020_2025.csv file contains the complete historical record of Bitcoin hourly prices from January 1, 2020 through May 13, 2025. This serves as the foundational dataset and remains static.
+Daily Updates
+New hourly data is:
+
+#Collected from CryptoCompare API
+Stored in Snowflake database
+Backed up daily in this repository to this repository as btc_last24h_YYYY-MM-DD.csv files
+
+This approach provides both a complete historical record and daily snapshots of recent price movements.
+
 
 ## Setup Instructions
 
@@ -105,9 +117,6 @@ WHERE DATE_STR >= DATEADD(month, -1, CURRENT_DATE())
 GROUP BY DATE_STR
 ORDER BY DATE_STR;
 ```
-
-### Accessing Backup Files
-Daily backup files are stored in the `/daily_backups` folder with filenames in the format `btc_last24h_YYYY-MM-DD.csv`.
 
 ## Maintenance
 
