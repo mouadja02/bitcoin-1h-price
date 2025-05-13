@@ -3,85 +3,79 @@ import pandas as pd
 import glob
 from datetime import datetime
 
-def consolidate_bitcoin_data(historical_file, daily_files_pattern, output_file):
+def consolidate_bitcoin_data(historical_file, daily_backups_pattern, output_file):
     """
-    Consolidate historical Bitcoin data with daily updates into a single CSV file
+    Consolidate historical Bitcoin data with daily backup files.
     
     Args:
-        historical_file (str): Path to historical data CSV file
-        daily_files_pattern (str): Glob pattern to match daily update files
-        output_file (str): Path to write the consolidated output file
+        historical_file: Path to the main historical data file
+        daily_backups_pattern: Glob pattern to match daily backup files
+        output_file: Path where the consolidated CSV will be saved
     """
     print(f"Reading historical data from {historical_file}...")
     
-    # Read historical data
+    # Read the historical data file
     try:
         historical_df = pd.read_csv(historical_file)
-        print(f"  - Found {len(historical_df)} historical records")
+        print(f"Loaded {len(historical_df)} historical records.")
     except Exception as e:
         print(f"Error reading historical file: {e}")
         return
     
-    # Convert TIME_UNIX to numeric to ensure proper sorting
-    historical_df['TIME_UNIX'] = pd.to_numeric(historical_df['TIME_UNIX'])
-    
-    # Find all daily update files
-    daily_files = sorted(glob.glob(daily_files_pattern))
-    print(f"Found {len(daily_files)} daily update files")
-    
-    # Create a set of existing timestamps for faster duplicate checking
+    # Create a set of existing timestamps for quick lookup
     existing_timestamps = set(historical_df['TIME_UNIX'].values)
     
+    # Get all daily backup files and sort them by name
+    daily_files = sorted(glob.glob(daily_backups_pattern))
+    print(f"Found {len(daily_files)} daily backup files.")
+    
     # Process each daily file
-    all_new_records = []
+    new_records = []
     for file in daily_files:
         try:
             daily_df = pd.read_csv(file)
             
-            # Convert TIME_UNIX to numeric
-            daily_df['TIME_UNIX'] = pd.to_numeric(daily_df['TIME_UNIX'])
-            
             # Filter out records that already exist in the historical data
-            new_records = daily_df[~daily_df['TIME_UNIX'].isin(existing_timestamps)]
+            new_records_df = daily_df[~daily_df['TIME_UNIX'].isin(existing_timestamps)]
             
-            if len(new_records) > 0:
-                print(f"  - {os.path.basename(file)}: Adding {len(new_records)} new records")
-                all_new_records.append(new_records)
-                
+            if len(new_records_df) > 0:
+                new_records.append(new_records_df)
                 # Update the set of existing timestamps
-                existing_timestamps.update(new_records['TIME_UNIX'].values)
+                existing_timestamps.update(new_records_df['TIME_UNIX'].values)
+                print(f"Added {len(new_records_df)} new records from {os.path.basename(file)}")
             else:
-                print(f"  - {os.path.basename(file)}: No new records")
+                print(f"No new records in {os.path.basename(file)}")
                 
         except Exception as e:
-            print(f"  - Error processing {file}: {e}")
+            print(f"Error processing {file}: {e}")
     
-    # Combine all new records
-    if all_new_records:
-        new_records_df = pd.concat(all_new_records, ignore_index=True)
-        print(f"Total new records: {len(new_records_df)}")
+    # If we found new records, combine them with the historical data
+    if new_records:
+        # Concatenate all new records
+        new_records_df = pd.concat(new_records, ignore_index=True)
         
         # Combine with historical data
         combined_df = pd.concat([historical_df, new_records_df], ignore_index=True)
         
-        # Sort by timestamp
-        combined_df = combined_df.sort_values('TIME_UNIX')
+        # Sort by timestamp to ensure chronological order
+        combined_df = combined_df.sort_values(by='TIME_UNIX')
         
-        # Remove any duplicates that might have slipped through
-        combined_df = combined_df.drop_duplicates(subset=['TIME_UNIX'])
-        
-        print(f"Writing consolidated data to {output_file} ({len(combined_df)} total records)...")
+        # Save the consolidated data
         combined_df.to_csv(output_file, index=False)
-        print("Done!")
+        print(f"Saved consolidated data with {len(combined_df)} records to {output_file}")
+        print(f"Added a total of {len(combined_df) - len(historical_df)} new records")
+        
+        # Print the date range
+        start_date = datetime.fromtimestamp(combined_df['TIME_UNIX'].min()).strftime('%Y-%m-%d %H:%M:%S')
+        end_date = datetime.fromtimestamp(combined_df['TIME_UNIX'].max()).strftime('%Y-%m-%d %H:%M:%S')
+        print(f"Data ranges from {start_date} to {end_date}")
     else:
-        print("No new records found. Historical data is already up-to-date.")
-        # Copy the historical file to output file
-        historical_df.to_csv(output_file, index=False)
+        print("No new records found in daily backup files.")
 
 if __name__ == "__main__":
-    # Configure these paths according to your repository structure
-    HISTORICAL_FILE = "btc-hourly-price_2020_2025.csv"
-    DAILY_FILES_PATTERN = "btc_last24h_*.csv"
-    OUTPUT_FILE = f"btc-hourly-price_consolidated_{datetime.now().strftime('%Y%m%d')}.csv"
-    
-    consolidate_bitcoin_data(HISTORICAL_FILE, DAILY_FILES_PATTERN, OUTPUT_FILE)
+    # Usage example
+    consolidate_bitcoin_data(
+        historical_file="btc-hourly-price_2015_2025.csv",
+        daily_backups_pattern="btc_last_*.csv",
+        output_file="btc-hourly-price_consolidated.csv"
+    )
