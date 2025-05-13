@@ -4,7 +4,7 @@
 This repository contains an automated system for tracking, storing, and backing up Bitcoin hourly price data using Snowflake and n8n. The system fetches data from CryptoCompare, maintains a complete history in Snowflake, and creates daily CSV backups on GitHub.
 
 ## Features
-- **Real-time Data Collection**: Automatically fetches hourly Bitcoin OHLCV data
+- **Hourly Data Collection**: Automatically fetches hourly Bitcoin OHLCV data
 - **Comprehensive Storage**: Maintains full historical price data in Snowflake
 - **Daily Backups**: Creates daily CSV backups of the most recent 24 hours
 - **Automated Workflows**: Uses n8n for reliable automation of all tasks
