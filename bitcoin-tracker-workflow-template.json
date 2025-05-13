@@ -1,0 +1,361 @@
+{
+  "name": "Bitcoin Price Tracker Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "triggerAtMinute": 45
+            }
+          ]
+        }
+      },
+      "name": "Hourly Price Update Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2080,
+        295
+      ],
+      "id": "hourly-trigger"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Get data from the API response\nconst responseData = $input.item.json.Data.Data;\n\n// Transform data for Snowflake\nconst snowflakeData = responseData.map(record => {\n  // Convert Unix timestamp to Date object\n  const timestamp = record.time * 1000; // Convert to milliseconds\n  const dateObj = new Date(timestamp);\n  \n  // Format date as YYYY-MM-DD for Snowflake\n  const date = dateObj.toISOString().split('T')[0];\n  \n  // Format hour as HH\n  const hour = dateObj.getUTCHours().toString().padStart(2, '0');\n  \n  // Return object with proper naming for Snowflake columns\n  return {\n    TIME_UNIX: record.time,\n    DATE_STR: date,\n    HOUR_STR: hour,\n    OPEN_PRICE: record.open,\n    HIGH_PRICE: record.high,\n    CLOSE_PRICE: record.close,\n    LOW_PRICE: record.low,\n    VOLUME_FROM: record.volumefrom,\n    VOLUME_TO: record.volumeto\n  };\n});\n\n// Generate SQL MERGE statement for Snowflake\nlet sqlQueries = [];\n\n// Generate a unique batch ID for logging\nconst batchId = Date.now().toString();\n\n// Create individual merge statements for each record\nsnowflakeData.forEach((record, index) => {\n  // Format values properly for SQL\n  const timeUnix = record.TIME_UNIX;\n  const dateStr = `'${record.DATE_STR}'`;\n  const hourStr = `'${record.HOUR_STR}'`;\n  const openPrice = record.OPEN_PRICE;\n  const highPrice = record.HIGH_PRICE;\n  const closePrice = record.CLOSE_PRICE;\n  const lowPrice = record.LOW_PRICE;\n  const volumeFrom = record.VOLUME_FROM;\n  const volumeTo = record.VOLUME_TO;\n\n  // Create MERGE statement for this record\n  const mergeQuery = `\n-- MERGE statement for timestamp ${timeUnix} (${record.DATE_STR} ${record.HOUR_STR}:00)\nMERGE INTO BITCOIN_DATA.PRICES.HOURLY_PRICES AS target\nUSING (SELECT \n  ${timeUnix} AS time_unix, \n  ${dateStr}::DATE AS date_str, \n  ${hourStr} AS hour_str, \n  ${openPrice} AS open_price, \n  ${highPrice} AS high_price, \n  ${closePrice} AS close_price, \n  ${lowPrice} AS low_price, \n  ${volumeFrom} AS volume_from,\n  ${volumeTo} AS volume_to\n) AS source\nON target.time_unix = source.time_unix\nWHEN MATCHED THEN UPDATE SET\n  target.open_price = source.open_price,\n  target.high_price = source.high_price,\n  target.close_price = source.close_price,\n  target.low_price = source.low_price,\n  target.volume_from = source.volume_from\nWHEN NOT MATCHED THEN INSERT\n  (time_unix, date_str, hour_str, open_price, high_price, close_price, low_price, volume_from, volume_to)\nVALUES\n  (source.time_unix, source.date_str, source.hour_str, source.open_price, source.high_price, source.close_price, source.low_price, source.volume_from, source.volume_to);`;\n\n  sqlQueries.push(mergeQuery);\n});\n\n// Create a single bulk insert query as an alternative approach\nconst bulkValues = snowflakeData.map(record => {\n  return `(${record.TIME_UNIX}, '${record.DATE_STR}', '${record.HOUR_STR}', ${record.OPEN_PRICE}, ${record.HIGH_PRICE}, ${record.CLOSE_PRICE}, ${record.LOW_PRICE}, ${record.VOLUME_FROM}, ${record.VOLUME_TO}, CURRENT_TIMESTAMP())`;\n}).join(',\\n  ');\n\nconst bulkMergeQuery = `\n-- Bulk MERGE for all records in batch ${batchId}\nMERGE INTO BITCOIN_DATA.PRICES.HOURLY_PRICES AS target\nUSING (\n  SELECT column1 AS time_unix, \n         column2 AS date_str, \n         column3 AS hour_str, \n         column4 AS open_price, \n         column5 AS high_price, \n         column6 AS close_price, \n         column7 AS low_price, \n         column8 AS volume_from, \n         column9 AS volume_to\n  FROM VALUES\n  ${bulkValues}\n) AS source\nON target.time_unix = source.time_unix\nWHEN MATCHED THEN UPDATE SET\n  target.open_price = source.open_price,\n  target.high_price = source.high_price,\n  target.close_price = source.close_price,\n  target.low_price = source.low_price,\n  target.volume_from = source.volume_from,\n  target.volume_to = source.volume_to\nWHEN NOT MATCHED THEN INSERT\n  (time_unix, date_str, hour_str, open_price, high_price, close_price, low_price, volume_from, volume_to)\nVALUES\n  (source.time_unix, source.date_str, source.hour_str, source.open_price, source.high_price, source.close_price, source.low_price, source.volume_from, source.volume_to);\n`;\n\n// Return both the transformed data and the SQL queries\nreturn { \n  json: { \n    records: snowflakeData,\n    individualMergeQueries: sqlQueries,\n    bulkMergeQuery: bulkMergeQuery,\n    recordCount: snowflakeData.length,\n    batchId: batchId,\n    timestamp: new Date().toISOString()\n  } \n};"
+      },
+      "name": "Transform Data with SQL",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -1640,
+        295
+      ],
+      "id": "transform-data"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.recordCount > 0 }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "Records Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -1420,
+        295
+      ],
+      "id": "records-check"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Get the results from whichever method was used\nconst input = $input.all();\nlet snowflakeResults;\nlet methodUsed;\n\n// Determine which method was used\nif (input.length > 0 && input[0].json) {\n  if (input[0].json.hasOwnProperty('ROWS_AFFECTED')) {\n    // This is from the SQL execution method\n    snowflakeResults = input[0].json;\n    methodUsed = 'SQL Execution';\n  } else {\n    // This is from the Insert method\n    snowflakeResults = input[0].json;\n    methodUsed = 'Insert Operation';\n  }\n}\n\n// Get original data info\nconst recordCount = $('Transform Data with SQL').item.json.recordCount;\nconst batchId = $('Transform Data with SQL').item.json.batchId;\n\n// Process results\nlet result;\n\nif (snowflakeResults) {\n  // Handle SQL execution results\n  if (methodUsed === 'SQL Execution') {\n    result = {\n      success: true,\n      method: methodUsed,\n      message: `Successfully executed SQL for ${recordCount} Bitcoin hourly records`,\n      details: snowflakeResults,\n      rowsAffected: snowflakeResults.ROWS_AFFECTED || 0,\n      timestamp: new Date().toISOString(),\n      batchId: batchId\n    };\n  } \n  // Handle Insert operation results\n  else {\n    const insertedRecords = Array.isArray(snowflakeResults) ? snowflakeResults.length : 0;\n    \n    result = {\n      success: true,\n      method: methodUsed,\n      message: `Successfully processed ${recordCount} Bitcoin hourly records`,\n      details: `${insertedRecords} records inserted/updated in Snowflake`,\n      timestamp: new Date().toISOString(),\n      batchId: batchId\n    };\n  }\n} else {\n  // Handle no results (error case)\n  result = {\n    success: false,\n    message: \"Error processing data in Snowflake\",\n    timestamp: new Date().toISOString(),\n    batchId: batchId\n  };\n}\n\nreturn { json: result };"
+      },
+      "name": "Process Results",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -1000,
+        320
+      ],
+      "id": "process-results"
+    },
+    {
+      "parameters": {
+        "url": "https://min-api.cryptocompare.com/data/v2/histohour",
+        "options": {},
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "fsym",
+              "value": "BTC"
+            },
+            {
+              "name": "tsym",
+              "value": "USD"
+            },
+            {
+              "name": "limit",
+              "value": "=24"
+            },
+            {
+              "name": "api_key",
+              "value": "YOUR_CRYPTOCOMPARE_API_KEY"
+            }
+          ]
+        }
+      },
+      "name": "Fetch Bitcoin Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -1860,
+        295
+      ],
+      "id": "fetch-data"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.bulkMergeQuery }}"
+      },
+      "name": "Execute SQL in Snowflake",
+      "type": "n8n-nodes-base.snowflake",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        180
+      ],
+      "id": "execute-sql"
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=✅ Hourly Price dataset successfully refreshed! 🔄{{ $json.details }}❄️",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -820,
+        320
+      ],
+      "id": "telegram-notification",
+      "name": "Telegram Hourly Update"
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  GITHUB_USERNAME: \"YOUR_GITHUB_USERNAME\",\n  GITHUB_REPO: \"YOUR_REPOSITORY_NAME\",\n  SNOWFLAKE_DATABASE: \"BITCOIN_DATA\",\n  SNOWFLAKE_SCHEMA: \"PRICES\",\n  SNOWFLAKE_TABLE: \"HOURLY_PRICES\",\n  BACKUP_FOLDER: \"daily_backups\"\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1680,
+        -120
+      ],
+      "id": "config-settings",
+      "name": "Config Settings"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  time_unix,\n  date_str,\n  hour_str,\n  open_price,\n  high_price,\n  close_price,\n  low_price,\n  volume_from,\n  volume_to\nFROM {{$json.SNOWFLAKE_DATABASE}}.{{$json.SNOWFLAKE_SCHEMA}}.{{$json.SNOWFLAKE_TABLE}}\nWHERE date_str >= DATEADD(day, -1, CURRENT_DATE())\nORDER BY time_unix DESC\nLIMIT 24;"
+      },
+      "type": "n8n-nodes-base.snowflake",
+      "typeVersion": 1,
+      "position": [
+        -1460,
+        -120
+      ],
+      "id": "query-last-24h",
+      "name": "Query Last 24h Data"
+    },
+    {
+      "parameters": {
+        "jsCode": "const allInputs = $input.all();\n\nif (!Array.isArray(allInputs) || allInputs.length === 0) {\n  return [{ json: { success: false, message: 'No data received in inputs' } }];\n}\n\n// CSV header\nlet csvContent = \"TIME_UNIX,DATE_STR,HOUR_STR,OPEN_PRICE,HIGH_PRICE,CLOSE_PRICE,LOW_PRICE,VOLUME_FROM,VOLUME_TO\\n\";\n\n// Add each row\nallInputs.forEach(item => {\n  const row = item.json;\n  const line = [\n    row.TIME_UNIX ?? '',\n    row.DATE_STR ?? '',\n    row.HOUR_STR ?? '',\n    row.OPEN_PRICE ?? '',\n    row.HIGH_PRICE ?? '',\n    row.CLOSE_PRICE ?? '',\n    row.LOW_PRICE ?? '',\n    row.VOLUME_FROM ?? '',\n    row.VOLUME_TO ?? ''\n  ].join(',');\n\n  csvContent += line + '\\n';\n});\n\n// Date for filename\nconst now = new Date();\nconst dateStr = now.toISOString().split('T')[0];\n\nreturn [{\n  json: {\n    csvContent,\n    dateStr,\n    recordCount: allInputs.length,\n    filename: `btc_last24h_${dateStr}.csv`,\n    backupTimestamp: now.toISOString(),\n    success: true\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1240,
+        -120
+      ],
+      "id": "format-as-csv",
+      "name": "Format as CSV"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "owner": "={{ $json.GITHUB_USERNAME }}",
+        "repository": "={{ $json.GITHUB_REPO }}",
+        "filePath": "={{ $json.filename }}",
+        "fileContent": "={{ $json.csvContent }}",
+        "commitMessage": "=Snowflake table daily backup for {{ $json.dateStr }} performed at {{ $json.backupTimestamp }}"
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        -1020,
+        -120
+      ],
+      "id": "github-backup",
+      "name": "GitHub Backup"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 23,
+              "triggerAtMinute": 55
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2000,
+        -120
+      ],
+      "id": "daily-backup-trigger",
+      "name": "Daily Backup Trigger"
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=✅ Daily OHCLV table successfully backed up on GitHub repository 💾",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -820,
+        -120
+      ],
+      "id": "telegram-backup-notification",
+      "name": "Telegram Backup Notification"
+    }
+  ],
+  "connections": {
+    "Hourly Price Update Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Bitcoin Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transform Data with SQL": {
+      "main": [
+        [
+          {
+            "node": "Records Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Records Found?": {
+      "main": [
+        [
+          {
+            "node": "Execute SQL in Snowflake",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Process Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Bitcoin Data": {
+      "main": [
+        [
+          {
+            "node": "Transform Data with SQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute SQL in Snowflake": {
+      "main": [
+        [
+          {
+            "node": "Process Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Results": {
+      "main": [
+        [
+          {
+            "node": "Telegram Hourly Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config Settings": {
+      "main": [
+        [
+          {
+            "node": "Query Last 24h Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Last 24h Data": {
+      "main": [
+        [
+          {
+            "node": "Format as CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format as CSV": {
+      "main": [
+        [
+          {
+            "node": "GitHub Backup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Backup Trigger": {
+      "main": [
+        [
+          {
+            "node": "Config Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub Backup": {
+      "main": [
+        [
+          {
+            "node": "Telegram Backup Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
