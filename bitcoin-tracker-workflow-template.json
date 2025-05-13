@@ -1,5 +1,5 @@
 {
-  "name": "Bitcoin Price Tracker Workflow",
+  "name": "My workflow 2",
   "nodes": [
     {
       "parameters": {
@@ -16,23 +16,23 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1,
       "position": [
-        -2080,
-        295
+        -80,
+        420
       ],
-      "id": "hourly-trigger"
+      "id": "45dced60-7ae5-4b0a-a7ce-a7e0076d588c"
     },
     {
       "parameters": {
-        "functionCode": "// Get data from the API response\nconst responseData = $input.item.json.Data.Data;\n\n// Transform data for Snowflake\nconst snowflakeData = responseData.map(record => {\n  // Convert Unix timestamp to Date object\n  const timestamp = record.time * 1000; // Convert to milliseconds\n  const dateObj = new Date(timestamp);\n  \n  // Format date as YYYY-MM-DD for Snowflake\n  const date = dateObj.toISOString().split('T')[0];\n  \n  // Format hour as HH\n  const hour = dateObj.getUTCHours().toString().padStart(2, '0');\n  \n  // Return object with proper naming for Snowflake columns\n  return {\n    TIME_UNIX: record.time,\n    DATE_STR: date,\n    HOUR_STR: hour,\n    OPEN_PRICE: record.open,\n    HIGH_PRICE: record.high,\n    CLOSE_PRICE: record.close,\n    LOW_PRICE: record.low,\n    VOLUME_FROM: record.volumefrom,\n    VOLUME_TO: record.volumeto\n  };\n});\n\n// Generate SQL MERGE statement for Snowflake\nlet sqlQueries = [];\n\n// Generate a unique batch ID for logging\nconst batchId = Date.now().toString();\n\n// Create individual merge statements for each record\nsnowflakeData.forEach((record, index) => {\n  // Format values properly for SQL\n  const timeUnix = record.TIME_UNIX;\n  const dateStr = `'${record.DATE_STR}'`;\n  const hourStr = `'${record.HOUR_STR}'`;\n  const openPrice = record.OPEN_PRICE;\n  const highPrice = record.HIGH_PRICE;\n  const closePrice = record.CLOSE_PRICE;\n  const lowPrice = record.LOW_PRICE;\n  const volumeFrom = record.VOLUME_FROM;\n  const volumeTo = record.VOLUME_TO;\n\n  // Create MERGE statement for this record\n  const mergeQuery = `\n-- MERGE statement for timestamp ${timeUnix} (${record.DATE_STR} ${record.HOUR_STR}:00)\nMERGE INTO BITCOIN_DATA.PRICES.HOURLY_PRICES AS target\nUSING (SELECT \n  ${timeUnix} AS time_unix, \n  ${dateStr}::DATE AS date_str, \n  ${hourStr} AS hour_str, \n  ${openPrice} AS open_price, \n  ${highPrice} AS high_price, \n  ${closePrice} AS close_price, \n  ${lowPrice} AS low_price, \n  ${volumeFrom} AS volume_from,\n  ${volumeTo} AS volume_to\n) AS source\nON target.time_unix = source.time_unix\nWHEN MATCHED THEN UPDATE SET\n  target.open_price = source.open_price,\n  target.high_price = source.high_price,\n  target.close_price = source.close_price,\n  target.low_price = source.low_price,\n  target.volume_from = source.volume_from\nWHEN NOT MATCHED THEN INSERT\n  (time_unix, date_str, hour_str, open_price, high_price, close_price, low_price, volume_from, volume_to)\nVALUES\n  (source.time_unix, source.date_str, source.hour_str, source.open_price, source.high_price, source.close_price, source.low_price, source.volume_from, source.volume_to);`;\n\n  sqlQueries.push(mergeQuery);\n});\n\n// Create a single bulk insert query as an alternative approach\nconst bulkValues = snowflakeData.map(record => {\n  return `(${record.TIME_UNIX}, '${record.DATE_STR}', '${record.HOUR_STR}', ${record.OPEN_PRICE}, ${record.HIGH_PRICE}, ${record.CLOSE_PRICE}, ${record.LOW_PRICE}, ${record.VOLUME_FROM}, ${record.VOLUME_TO}, CURRENT_TIMESTAMP())`;\n}).join(',\\n  ');\n\nconst bulkMergeQuery = `\n-- Bulk MERGE for all records in batch ${batchId}\nMERGE INTO BITCOIN_DATA.PRICES.HOURLY_PRICES AS target\nUSING (\n  SELECT column1 AS time_unix, \n         column2 AS date_str, \n         column3 AS hour_str, \n         column4 AS open_price, \n         column5 AS high_price, \n         column6 AS close_price, \n         column7 AS low_price, \n         column8 AS volume_from, \n         column9 AS volume_to\n  FROM VALUES\n  ${bulkValues}\n) AS source\nON target.time_unix = source.time_unix\nWHEN MATCHED THEN UPDATE SET\n  target.open_price = source.open_price,\n  target.high_price = source.high_price,\n  target.close_price = source.close_price,\n  target.low_price = source.low_price,\n  target.volume_from = source.volume_from,\n  target.volume_to = source.volume_to\nWHEN NOT MATCHED THEN INSERT\n  (time_unix, date_str, hour_str, open_price, high_price, close_price, low_price, volume_from, volume_to)\nVALUES\n  (source.time_unix, source.date_str, source.hour_str, source.open_price, source.high_price, source.close_price, source.low_price, source.volume_from, source.volume_to);\n`;\n\n// Return both the transformed data and the SQL queries\nreturn { \n  json: { \n    records: snowflakeData,\n    individualMergeQueries: sqlQueries,\n    bulkMergeQuery: bulkMergeQuery,\n    recordCount: snowflakeData.length,\n    batchId: batchId,\n    timestamp: new Date().toISOString()\n  } \n};"
+        "functionCode": "// Get data from the API response\nconst responseData = $input.item.json.Data.Data;\n\n// Transform data for Snowflake\nconst snowflakeData = responseData.map(record => {\n  // Convert Unix timestamp to Date object\n  const timestamp = record.time * 1000; // Convert to milliseconds\n  const dateObj = new Date(timestamp);\n  \n  // Format date as YYYY-MM-DD for Snowflake\n  const date = dateObj.toISOString().split('T')[0];\n  \n  // Format hour as HH\n  const hour = dateObj.getUTCHours().toString().padStart(2, '0');\n  \n  // Return object with proper naming for Snowflake columns\n  return {\n    TIME_UNIX: record.time,\n    DATE_STR: date,\n    HOUR_STR: hour,\n    OPEN_PRICE: record.open,\n    HIGH_PRICE: record.high,\n    CLOSE_PRICE: record.close,\n    LOW_PRICE: record.low,\n    VOLUME_FROM: record.volumefrom,\n    VOLUME_TO: record.volumeto\n  };\n});\n\n// Generate SQL MERGE statement for Snowflake\nlet sqlQueries = [];\n\n// Generate a unique batch ID for logging\nconst batchId = Date.now().toString();\n\n// Create individual merge statements for each record\nsnowflakeData.forEach((record, index) => {\n  // Format values properly for SQL\n  const timeUnix = record.TIME_UNIX;\n  const dateStr = `'${record.DATE_STR}'`;\n  const hourStr = `'${record.HOUR_STR}'`;\n  const openPrice = record.OPEN_PRICE;\n  const highPrice = record.HIGH_PRICE;\n  const closePrice = record.CLOSE_PRICE;\n  const lowPrice = record.LOW_PRICE;\n  const volumeFrom = record.VOLUME_FROM;\n  const volumeTo = record.VOLUME_TO;\n\n  // Create MERGE statement for this record\n  const mergeQuery = `\n-- MERGE statement for timestamp ${timeUnix} (${record.DATE_STR} ${record.HOUR_STR}:00)\nMERGE INTO BITCOIN_DATA.PRICES.HOURLY_PRICES AS target\nUSING (SELECT \n  ${timeUnix} AS time_unix, \n  ${dateStr}::DATE AS date_str, \n  ${hourStr} AS hour_str, \n  ${openPrice} AS open_price, \n  ${highPrice} AS high_price, \n  ${closePrice} AS close_price, \n  ${lowPrice} AS low_price, \n  ${volumeFrom} AS volume_from,\n  ${volumeTo} AS volume_to\n) AS source\nON target.time_unix = source.time_unix\nWHEN MATCHED THEN UPDATE SET\n  target.open_price = source.open_price,\n  target.high_price = source.high_price,\n  target.close_price = source.close_price,\n  target.low_price = source.low_price,\n  target.volume_from = source.volume_from\nWHEN NOT MATCHED THEN INSERT\n  (time_unix, date_str, hour_str, open_price, high_price, close_price, low_price, volume_from, volume_to)\nVALUES\n  (source.time_unix, source.date_str, source.hour_str, source.open_price, source.high_price, source.close_price, source.low_price, source.volume_from, source.volume_to);`;\n\n  sqlQueries.push(mergeQuery);\n});\n\n// Create a single bulk insert query as an alternative approach\nconst bulkValues = snowflakeData.map(record => {\n  return `(${record.TIME_UNIX}, '${record.DATE_STR}', '${record.HOUR_STR}', ${record.OPEN_PRICE}, ${record.HIGH_PRICE}, ${record.CLOSE_PRICE}, ${record.LOW_PRICE}, ${record.VOLUME_FROM}, ${record.VOLUME_TO})`;\n}).join(',\\n  ');\n\nconst bulkMergeQuery = `\n-- Bulk MERGE for all records in batch ${batchId}\nMERGE INTO BITCOIN_DATA.PRICES.HOURLY_PRICES AS target\nUSING (\n  SELECT column1 AS time_unix, \n         column2 AS date_str, \n         column3 AS hour_str, \n         column4 AS open_price, \n         column5 AS high_price, \n         column6 AS close_price, \n         column7 AS low_price, \n         column8 AS volume_from, \n         column9 AS volume_to\n  FROM VALUES\n  ${bulkValues}\n) AS source\nON target.time_unix = source.time_unix\nWHEN MATCHED THEN UPDATE SET\n  target.open_price = source.open_price,\n  target.high_price = source.high_price,\n  target.close_price = source.close_price,\n  target.low_price = source.low_price,\n  target.volume_from = source.volume_from,\n  target.volume_to = source.volume_to\nWHEN NOT MATCHED THEN INSERT\n  (time_unix, date_str, hour_str, open_price, high_price, close_price, low_price, volume_from, volume_to)\nVALUES\n  (source.time_unix, source.date_str, source.hour_str, source.open_price, source.high_price, source.close_price, source.low_price, source.volume_from, source.volume_to);\n`;\n\n// Return both the transformed data and the SQL queries\nreturn { \n  json: { \n    records: snowflakeData,\n    individualMergeQueries: sqlQueries,\n    bulkMergeQuery: bulkMergeQuery,\n    recordCount: snowflakeData.length,\n    batchId: batchId,\n    timestamp: new Date().toISOString()\n  } \n};"
       },
       "name": "Transform Data with SQL",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        -1640,
-        295
+        360,
+        420
       ],
-      "id": "transform-data"
+      "id": "6ebe0c5c-b9ca-4145-8cb9-12990ac915b7"
     },
     {
       "parameters": {
@@ -49,10 +49,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        -1420,
-        295
+        580,
+        420
       ],
-      "id": "records-check"
+      "id": "e829e8de-756d-4528-807f-3bbe69f9cb88"
     },
     {
       "parameters": {
@@ -62,10 +62,10 @@
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        -1000,
-        320
+        1000,
+        440
       ],
-      "id": "process-results"
+      "id": "f7d82af4-75b6-42a0-845f-be831f48caab"
     },
     {
       "parameters": {
@@ -96,10 +96,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 1,
       "position": [
-        -1860,
-        295
+        140,
+        420
       ],
-      "id": "fetch-data"
+      "id": "c296540a-64bc-4b80-bf09-6aada654c51b"
     },
     {
       "parameters": {
@@ -110,10 +110,16 @@
       "type": "n8n-nodes-base.snowflake",
       "typeVersion": 1,
       "position": [
-        -1200,
-        180
+        800,
+        300
       ],
-      "id": "execute-sql"
+      "id": "0bf52ddb-ce24-43a7-88ae-a2694ca42e79",
+      "credentials": {
+        "snowflake": {
+          "id": "Z6aFbXwS3Q9Rj2pQ",
+          "name": "Perso account"
+        }
+      }
     },
     {
       "parameters": {
@@ -124,11 +130,12 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        -820,
-        320
+        1180,
+        440
       ],
-      "id": "telegram-notification",
-      "name": "Telegram Hourly Update"
+      "id": "c977fda2-4726-4ed9-b2dd-3a9cfdf64025",
+      "name": "Telegram Hourly Update",
+      "webhookId": "11d1c788-184d-4cfe-999a-907b78ddcc17"
     },
     {
       "parameters": {
@@ -137,10 +144,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1680,
-        -120
+        320,
+        0
       ],
-      "id": "config-settings",
+      "id": "51b3ada0-87b4-4695-b06f-19cd0aa8b77d",
       "name": "Config Settings"
     },
     {
@@ -151,11 +158,17 @@
       "type": "n8n-nodes-base.snowflake",
       "typeVersion": 1,
       "position": [
-        -1460,
-        -120
+        540,
+        0
       ],
-      "id": "query-last-24h",
-      "name": "Query Last 24h Data"
+      "id": "2202698e-6757-481a-8eb4-7708b946de56",
+      "name": "Query Last 24h Data",
+      "credentials": {
+        "snowflake": {
+          "id": "Z6aFbXwS3Q9Rj2pQ",
+          "name": "Perso account"
+        }
+      }
     },
     {
       "parameters": {
@@ -164,10 +177,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1240,
-        -120
+        760,
+        0
       ],
-      "id": "format-as-csv",
+      "id": "858c1498-bbe8-4411-8d6d-e8ba2ac6b872",
       "name": "Format as CSV"
     },
     {
@@ -182,11 +195,18 @@
       "type": "n8n-nodes-base.github",
       "typeVersion": 1.1,
       "position": [
-        -1020,
-        -120
+        960,
+        0
       ],
-      "id": "github-backup",
-      "name": "GitHub Backup"
+      "id": "c020306a-ff34-40f1-aa04-6c24023c1142",
+      "name": "GitHub Backup",
+      "webhookId": "9cd43cea-79f5-4382-8007-393b5a6e0eb7",
+      "credentials": {
+        "githubApi": {
+          "id": "dZE0R8RMgCMhgipb",
+          "name": "GitHub account"
+        }
+      }
     },
     {
       "parameters": {
@@ -202,10 +222,10 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        -2000,
-        -120
+        0,
+        0
       ],
-      "id": "daily-backup-trigger",
+      "id": "c9c25349-bb16-46a7-9d28-9a43a4ddb4fd",
       "name": "Daily Backup Trigger"
     },
     {
@@ -217,13 +237,15 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        -820,
-        -120
+        1180,
+        0
       ],
-      "id": "telegram-backup-notification",
-      "name": "Telegram Backup Notification"
+      "id": "61792158-41f2-47df-8965-1967bd6280f9",
+      "name": "Telegram Backup Notification",
+      "webhookId": "98560e28-ba35-4aea-9b46-edd27f11047d"
     }
   ],
+  "pinData": {},
   "connections": {
     "Hourly Price Update Trigger": {
       "main": [
@@ -354,8 +376,15 @@
       ]
     }
   },
-  "active": true,
+  "active": false,
   "settings": {
     "executionOrder": "v1"
-  }
+  },
+  "versionId": "4e09c7c3-e29c-45ca-afc7-d8c27c79bb80",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a9099fa53226924b3e551f16d985c8ae0ba42a0fef79f5a17758f4026c794682"
+  },
+  "id": "e4BIy1zkBhdIvDs3",
+  "tags": []
 }
