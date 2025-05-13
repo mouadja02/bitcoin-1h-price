@@ -4,6 +4,7 @@
 This repository maintains Bitcoin hourly price data from 2020 to present, using a combination of historical data files and daily Snowflake backups. The system fetches current data from CryptoCompare, stores it in Snowflake, and creates daily CSV backups on GitHub.
 
 ## Repository Structure 📁
+- `bitcoin-tracker-workflow-template.json`: n8n workflow template
 - `btc-hourly-price_2020_2025.csv`: Complete historical hourly data from January 1, 2020 through May 13, 2025
 - `btc_last24h_YYYY-MM-DD.csv`: Daily backups of the most recent 24 hours fetched from Snowflake
 - `README.md`: This documentation file
