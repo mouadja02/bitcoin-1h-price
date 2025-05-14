@@ -89,12 +89,6 @@ In the meantime, you can use 'consolidate_bitcoin_data.py' Python script to comb
 The CryptoCompare API has rate limits: 11,000 calls per month
 - This workflow uses approximately 750 calls per month (hourly fetching)
 
-### Adding More Cryptocurrencies
-To track additional cryptocurrencies:
-1. Create new tables in Snowflake for each cryptocurrency
-2. Clone and modify the workflow, changing the API parameters
-3. Update the file naming convention to distinguish between cryptocurrencies
-
 ## License 📄
 This project is licensed under the MIT License - see the LICENSE file for details.
 
