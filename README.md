@@ -4,7 +4,6 @@
 This repository maintains Bitcoin hourly price data from 2015 to present, using a combination of historical data files and daily Snowflake backups. The system fetches current data from CryptoCompare, stores it in Snowflake, and creates daily CSV backups on GitHub.
 
 ## Repository Structure 📁
-- `bitcoin-tracker-workflow-template.json`: n8n workflow template
 - `btc-hourly-price_2015_2025.csv`: Complete 10y historical hourly data from November 12, 2014 through May 13, 2025
 - `btc_ohclv_YYYY-MM-DD.csv`: Daily backups of the most recent 24 hours fetched from Snowflake
 - `README.md`: This documentation file
@@ -40,106 +39,6 @@ New hourly data is:
 
 This approach provides both a complete historical record and daily snapshots of recent price movements.
 
-## Setup Instructions 🛠️
-
-### Prerequisites
-- Snowflake account
-- GitHub account and personal access token with repo permissions
-- n8n instance
-- CryptoCompare API key (register at [CryptoCompare](https://min-api.cryptocompare.com/))
-- Optional: Telegram bot for notifications
-
-### Step 1: Snowflake Setup
-1. Log in to your Snowflake account and execute this SQL to create the database and table:
-
-```sql
-CREATE DATABASE IF NOT EXISTS BITCOIN_DATA;
-USE DATABASE BITCOIN_DATA;
-CREATE SCHEMA IF NOT EXISTS PRICES;
-USE SCHEMA PRICES;
-
-CREATE TABLE IF NOT EXISTS HOURLY_PRICES (
-    TIME_UNIX INTEGER NOT NULL,
-    DATE_STR DATE NOT NULL,
-    HOUR_STR VARCHAR(2) NOT NULL,
-    OPEN_PRICE FLOAT NOT NULL,
-    HIGH_PRICE FLOAT NOT NULL,
-    CLOSE_PRICE FLOAT NOT NULL,
-    LOW_PRICE FLOAT NOT NULL,
-    VOLUME_FROM FLOAT NOT NULL,
-    VOLUME_TO FLOAT NOT NULL
-);
-```
-
-2. Create a Snowflake user for n8n:
-
-```sql
-CREATE USER N8N_SERVICE_USER
-PASSWORD = 'your_secure_password'
-DEFAULT_ROLE = N8N_ROLE;
-
-CREATE ROLE N8N_ROLE;
-GRANT USAGE ON DATABASE BITCOIN_DATA TO ROLE N8N_ROLE;
-GRANT USAGE ON SCHEMA BITCOIN_DATA.PRICES TO ROLE N8N_ROLE;
-GRANT SELECT, INSERT, UPDATE ON TABLE BITCOIN_DATA.PRICES.HOURLY_PRICES TO ROLE N8N_ROLE;
-GRANT ROLE N8N_ROLE TO USER N8N_SERVICE_USER;
-```
-
-### Step 2: n8n Workflow Setup
-
-1. **Import the workflow template**:
-   - Open your n8n instance
-   - Go to "Workflows" → "Import from file"
-   - Upload the `bitcoin-tracker-workflow-template.json` file
-
-2. **Configure Credentials**:
-   - **Snowflake**: Add your Snowflake credentials
-     - Account: `your-account.snowflakecomputing.com`
-     - Database: `BITCOIN_DATA`
-     - Schema: `PRICES`
-     - Username: `N8N_SERVICE_USER`
-     - Password: Your password from step 1
-     - Warehouse: Your warehouse name
-
-   - **GitHub**: Add your GitHub credentials
-     - Create a Personal Access Token with repo permissions
-     - Add this token to n8n
-
-   - **Telegram** (optional): 
-     - Create a Telegram bot via BotFather
-     - Obtain your bot token
-     - Add to n8n credentials
-
-3. **Customize the Workflow**:
-   - Edit the `Config Settings` node to set:
-     - `GITHUB_USERNAME`: Your GitHub username
-     - `GITHUB_REPO`: Your repository name
-   
-   - Edit the `Fetch Bitcoin Data` node:
-     - Replace `YOUR_CRYPTOCOMPARE_API_KEY` with your actual API key
-   
-   - If using Telegram notifications:
-     - Set `YOUR_TELEGRAM_CHAT_ID` in both Telegram nodes with your chat ID
-
-4. **Schedule the Workflow**:
-   - The template includes two triggers:
-     - `Hourly Price Update Trigger`: Runs 45 minutes past each hour
-     - `Daily Backup Trigger`: Runs at 23:55 daily
-   - Adjust these schedules if needed
-
-5. **Activate the Workflow**:
-   - Once configured, toggle the "Active" switch to enable the workflow
-
-### Step 3: Initial Data Load
-
-1. Download the historical Bitcoin data from January 1, 2015 to May 13, 2025:
-   - Use the CryptoCompare API with the Historical Hour Data endpoint
-   - Or use a provided CSV if available in this repository
-
-2. Upload this historical data to your GitHub repository as `btc-hourly-price_2015_2025.csv`
-
-3. Wait for the workflow to run automatically or trigger it manually to start collecting new data
-
 ## Usage 📊
 
 ### Accessing Historical Data
@@ -147,29 +46,6 @@ The complete historical dataset from 2015-2025 is available in the `btc-hourly-p
 
 ### Accessing Recent Data
 Daily snapshots of the most recent 24 hours are available in files named `btc_ohclv_YYYY-MM-DD.csv`. Each file contains exactly 24 hours of data.
-
-### Querying Snowflake Data
-You can use SQL to query the historical data in Snowflake:
-
-```sql
--- Get all data for a specific date
-SELECT * FROM BITCOIN_DATA.PRICES.HOURLY_PRICES
-WHERE DATE_STR = '2025-05-13'
-ORDER BY TIME_UNIX;
-
--- Get daily average prices for the past month
-SELECT 
-  DATE_STR,
-  AVG(OPEN_PRICE) AS avg_open,
-  AVG(CLOSE_PRICE) AS avg_close,
-  MAX(HIGH_PRICE) AS highest,
-  MIN(LOW_PRICE) AS lowest,
-  SUM(VOLUME_FROM) AS total_volume_btc
-FROM BITCOIN_DATA.PRICES.HOURLY_PRICES
-WHERE DATE_STR >= DATEADD(month, -1, CURRENT_DATE())
-GROUP BY DATE_STR
-ORDER BY DATE_STR;
-```
 
 ## Future Plans: Consolidated Historical Data 🔮
 
